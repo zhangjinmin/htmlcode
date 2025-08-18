@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>超市DPA经营业绩动态分析框架</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        // 配置Tailwind自定义颜色
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0ea5e9',
+                        secondary: '#4f46e5',
+                        success: '#10b981',
+                        warning: '#f59e0b',
+                        danger: '#ef4444',
+                        info: '#3b82f6',
+                        light: '#f3f4f6',
+                        dark: '#1e293b',
+                    },
+                },
+            },
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-gradient {
+                background: linear-gradient(90deg, #0ea5e9, #4f46e5);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+            .card-shadow {
+                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            }
+            .transition-smooth {
+                transition: all 0.2s ease;
+            }
+            .badge-p { @apply px-3 py-1 rounded-full text-sm font-medium; }
+            .badge-v { @apply px-3 py-1 rounded-full text-sm font-medium; }
+            .badge-m { @apply px-3 py-1 rounded-full text-sm font-medium; }
+            .badge-nd { @apply px-3 py-1 rounded-full text-sm font-medium; }
+            .combo-btn {
+                @apply px-4 py-2 rounded-lg font-medium transition-smooth bg-gray-100 text-gray-700 hover:bg-gray-200 mb-2 inline-block;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+    <!-- 头部 -->
+    <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 class="text-2xl font-bold text-gradient bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">超市DPA经营业绩动态分析框架</h1>
+                    <p class="mt-1 text-gray-600 max-w-2xl">通过价格动量(P)、销量动量(V)、结构动量(M)、新品动量(N)、下架品动量(D)五维度，全面诊断商品健康状态</p>
+                </div>
+                <div class="flex space-x-3">
+                    <button id="analysis-tab" class="px-4 py-2 rounded-lg font-medium transition-smooth bg-gray-100 text-gray-800 hover:bg-gray-200">动态分析</button>
+                    <button id="guide-tab" class="px-4 py-2 rounded-lg font-medium transition-smooth bg-primary text-white">使用说明</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主要内容 -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <!-- 分析内容 -->
+        <div id="analysis-content" class="hidden">
+            <!-- 选择器部分 -->
+            <div class="bg-white rounded-xl card-shadow p-5 mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold text-gray-800 flex items-center">
+                        <i class="fa fa-filter text-primary mr-2"></i>选择分析维度
+                    </h2>
+                    <div class="text-sm text-gray-600">
+                        <i class="fa fa-info-circle mr-1"></i>点击下方预设组合快速选择
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-700">价格动量 (P)</label>
+                        <select id="p-select" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                            <option value="+">上涨</option>
+                            <option value="-">下跌</option>
+                        </select>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-700">销量动量 (V)</label>
+                        <select id="v-select" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                            <option value="+">增加</option>
+                            <option value="-">减少</option>
+                        </select>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-700">结构动量 (M)</label>
+                        <select id="m-select" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                            <option value="+">优化</option>
+                            <option value="-">恶化</option>
+                        </select>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-700">新品与下架 (N/D)</label>
+                        <select id="nd-select" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                            <option value=">">N > D (净增长)</option>
+                            <option value="=">N = D (平衡)</option>
+                            <option value="<">N < D (净损失)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button class="combo-btn" data-combo="pv+m+nd>">P+V+M+ N>D 黄金动量</button>
+                    <button class="combo-btn" data-combo="pv+m-nd>">P+V+M- N>D 增长风险</button>
+                    <button class="combo-btn" data-combo="p-v+m+nd>">P-V+M+ N>D 健康增长</button>
+                    <button class="combo-btn" data-combo="pv+m+nd=">P+V+M+ N=D 稳定增长</button>
+                    <button class="combo-btn" data-combo="pv+m+nd<">P+V+M+ N&lt;D 新陈代谢失衡</button>
+                    <button class="combo-btn" data-combo="p+v-m+nd>">P+V-M- N>D 价值转型</button>
+                    <button class="combo-btn" data-combo="p+v-m+nd=">P+V-M- N=D 结构平衡</button>
+                    <button class="combo-btn" data-combo="p-v+m+nd=">P-V+M+ N=D 结构优化</button>
+                    <button class="combo-btn" data-combo="p-v+m-nd>">P-V+M- N>D 价值提升</button>
+                    <button class="combo-btn" data-combo="p+v-m-nd<">P+V-M- N&lt;D 危机组合</button>
+                </div>
+            </div>
+
+            <!-- 分析部分 -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- 左侧 - 组合详情 -->
+                <div class="lg:col-span-2">
+                    <div class="bg-white rounded-xl card-shadow overflow-hidden h-full flex flex-col">
+                        <div class="p-5 bg-gradient-to-r from-primary/5 to-secondary/5 border-b border-gray-100">
+                            <div class="flex flex-wrap justify-between items-start gap-3">
+                                <div>
+                                    <h2 id="combination-title" class="text-xl font-bold text-gray-800">P+V+M+ N>D 组合分析</h2>
+                                    <p class="mt-1 text-gray-600">当前选择的DPA动量组合状态</p>
+                                </div>
+                                <div class="flex space-x-2">
+                                    <span id="p-badge" class="badge-p bg-blue-100 text-blue-800">P+</span>
+                                    <span id="v-badge" class="badge-v bg-green-100 text-green-800">V+</span>
+                                    <span id="m-badge" class="badge-m bg-purple-100 text-purple-800">M优化</span>
+                                    <span id="nd-badge" class="badge-nd bg-orange-100 text-orange-800">N>D</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-5 flex-grow">
+                            <div id="combination-content">
+                                <!-- 组合列表将通过JavaScript动态生成 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右侧 - 说明卡片 -->
+                <div class="space-y-6">
+                    <div class="bg-white rounded-xl card-shadow p-5">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                            <i class="fa fa-info-circle text-primary mr-2"></i>统一解读框架
+                        </h3>
+                        <p class="text-gray-700 text-sm">DPA分析不是孤立的五个数字，而是一个完整的经营叙事。解读时，请按以下顺序思考：</p>
+                        <ol class="list-decimal list-inside text-gray-700 text-sm space-y-1 mt-2">
+                            <li><strong>先看N/D</strong>：这是业务的"新陈代谢"健康度。N>D代表活力，N=D代表稳定，N&lt;D代表萎缩。</li>
+                            <li><strong>再看销量(V)</strong>：这是业务的"心跳"。V+是健康的标志。</li>
+                            <li><strong>最后看P、V、M</strong>：这是业务的"体质"。M+意味着结构在优化，M-则需警惕"虚胖"。</li>
+                        </ol>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <h4 class="font-semibold text-gray-800 mb-2 flex items-center">
+                            <i class="fa fa-check-circle text-green-500 mr-2"></i>公式应用建议
+                        </h4>
+                        <ul class="list-disc pl-5 space-y-2 text-gray-700 text-sm">
+                            <li>明确基准期选择：基准价格、基准销量应选择具有代表性的历史时期</li>
+                            <li>注意单位一致性：确保价格、销量的单位在计算中保持一致</li>
+                            <li>结合绝对值分析：P、V、M值的大小反映了变化的强度</li>
+                            <li>多维度交叉验证：将DPA分析与毛利率、周转率、客流量结合使用</li>
+                        </ul>
+                    </div>
+                    <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                        <h4 class="font-semibold text-gray-800 mb-2 flex items-center">
+                            <i class="fa fa-exclamation-triangle text-yellow-500 mr-2"></i>注意事项
+                        </h4>
+                        <ul class="list-disc pl-5 space-y-2 text-gray-700 text-sm">
+                            <li><strong>结构动量(M)解释</strong>：M反映价格和销量变动的交互效应，表示高利润/高单价商品占比的变化</li>
+                            <li><strong>不要孤立看待M值</strong>：必须结合毛利率、客流量等指标综合判断</li>
+                            <li><strong>基准选择敏感性</strong>：结果高度依赖基准值的选择</li>
+                            <li><strong>M值解读</strong>：M+表示销售结构向高利润/高单价商品倾斜，M-表示销售结构向低利润/低单价商品倾斜</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 使用说明内容 -->
+        <div id="guide-content">
+            <div class="bg-white rounded-xl card-shadow p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                    <i class="fa fa-book text-primary mr-2"></i>DPA经营业绩动态分析框架说明
+                </h2>
+                <div class="space-y-8">
+                    <section>
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                            <i class="fa fa-lightbulb-o text-primary mr-2"></i>关键解读原则
+                        </h3>
+                        <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                            <h4 class="font-semibold text-blue-800 mb-2 flex items-center">
+                                <i class="fa fa-info-circle mr-2"></i>首要原则
+                            </h4>
+                            <ul class="list-disc pl-5 space-y-2 text-gray-700">
+                                <li><strong>DPA分析不是看单个指标的好坏，而是理解各指标之间的关系和业务背后的逻辑。</strong> 结构动量(M)为正或负只是故事的一部分，必须结合毛利率、客流量等指标进行综合判断，才能得出有价值的业务洞察。</li>
+                                <li><strong>DPA分析的复杂性在于计算上并非是总体平均的计算，而是所有单品的累加，这个是关键点。</strong> 这意味着即使总体价格和销量都下降，结构动量(M)仍可能为负（P-V-M-组合），这是SUMX计算方式导致的。</li>
+                            </ul>
+                        </div>
+                        <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200 mt-4">
+                            <h4 class="font-semibold text-gray-800 mb-2 flex items-center">
+                                <i class="fa fa-exclamation-triangle text-yellow-500 mr-2"></i>不要孤立看待结构动量
+                            </h4>
+                            <p class="text-gray-700 mb-2">结构动量需要结合毛利率、客流量等指标进行综合判断。例如：</p>
+                            <ul class="list-disc pl-5 space-y-1 text-gray-700">
+                                <li>结构动量为负但毛利率上升：可能是成功的"以价换量"策略，如香蕉案例</li>
+                                <li>结构动量为负且毛利率下降：真正的结构恶化，需警惕</li>
+                                <li>结构动量为正但毛利率下降：可能是高毛利商品但销量极低，需关注规模</li>
+                            </ul>
+                        </div>
+                        <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 mt-4">
+                            <h4 class="font-semibold text-blue-800 mb-2 flex items-center">
+                                <i class="fa fa-info-circle mr-2"></i>动量视角的品类分析
+                            </h4>
+                            <p class="text-gray-700 mb-2">不同品类对DPA的解读有差异：</p>
+                            <ul class="list-disc pl-5 space-y-1 text-gray-700">
+                                <li><strong>生鲜品类</strong>：结构动量易受损耗影响，高利润水果损耗高→结构动量为负</li>
+                                <li><strong>百货品类</strong>：P+V+结构动量为负高发区，促销活动易导致结构动量为负</li>
+                                <li><strong>食品品类</strong>：结构动量是核心，高利润进口商品占比是结构动量为正的关键</li>
+                            </ul>
+                        </div>
+                    </section>
+                    <section>
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                            <i class="fa fa-bookmark text-primary mr-2"></i>核心概念
+                        </h3>
+                        <p class="text-gray-700 mb-4">DPA经营业绩动态分析框架将总收入变化分解为五个核心动量指标：</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                                <h4 class="font-semibold text-blue-800 mb-2">动量三要素 (PVM)</h4>
+                                <ul class="space-y-2 text-gray-700">
+                                    <li class="flex"><span class="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5 mr-2"></span><span><strong>价格动量 (P)</strong>：因价格变动带来的收入动量</span></li>
+                                    <li class="flex"><span class="w-1.5 h-1.5 bg-green-500 rounded-full mt-1.5 mr-2"></span><span><strong>销量动量 (V)</strong>：因销量变动带来的收入动量</span></li>
+                                    <li class="flex"><span class="w-1.5 h-1.5 bg-purple-500 rounded-full mt-1.5 mr-2"></span><span><strong>结构动量 (M)</strong>：因销售结构变化带来的收入动量</span></li>
+                                </ul>
+                            </div>
+                            <div class="bg-orange-50 p-4 rounded-lg border border-orange-100">
+                                <h4 class="font-semibold text-orange-800 mb-2">生命周期动量 (ND)</h4>
+                                <ul class="space-y-2 text-gray-700">
+                                    <li class="flex"><span class="w-1.5 h-1.5 bg-orange-500 rounded-full mt-1.5 mr-2"></span><span><strong>新品动量 (N)</strong>：新上市商品带来的增量收入动量，恒为<strong>正</strong></span></li>
+                                    <li class="flex"><span class="w-1.5 h-1.5 bg-red-500 rounded-full mt-1.5 mr-2"></span><span><strong>下架品动量 (D)</strong>：淘汰商品带来的减量损失动量，恒为<strong>负</strong></span></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mt-4">
+                            <p class="text-gray-700"><strong>核心恒等式：</strong> 总业绩动量 = 本期总销售额 - 基准期总销售额 = P + V + M + N + D。这个等式是检验您所有度量值是否正确的最终标准。</p>
+                        </div>
+                        <div class="bg-green-50 border-l-4 border-green-400 p-4 mt-4">
+                            <p class="text-gray-700"><strong>关于N/D的解读：</strong> 分析新品与下架品，关键不是看N和D的正负，而是看二者的相对大小。我们关注的是 <strong>N > D</strong> (净增长，健康)、<strong>N = D</strong> (净平衡，稳定) 和 <strong>N < D</strong> (净损失，危险) 三种状态。</p>
+                        </div>
+                    </section>
+                    <section>
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                            <i class="fa fa-calculator text-primary mr-2"></i>DPA公式定义
+                        </h3>
+                        <div class="formula-box mb-6">
+                            <h4 class="font-bold text-lg text-gray-800 mb-2">P = (当前价格 - 基准价格) × 基准数量</h4>
+                            <p class="text-gray-700">价格动量：衡量由于销售价格变动带来的收入动量，仅计算"老品"。</p>
+                        </div>
+                        <div class="formula-box mb-6">
+                            <h4 class="font-bold text-lg text-gray-800 mb-2">V = (当前销量 - 基准销量) × 基准价格</h4>
+                            <p class="text-gray-700">销量动量：衡量在基期价格保持不变的情况下，由于销量变动带来的收入动量，仅计算"老品"。</p>
+                        </div>
+                        <div class="formula-box mb-6">
+                            <h4 class="font-bold text-lg text-gray-800 mb-2">M = (当前价格 - 基准价格) × (当前销量 - 基准销量)</h4>
+                            <p class="text-gray-700">结构动量：衡量在总销量和基期价格保持不变的情况下，由于产品销售结构变化带来的收入动量，仅计算"老品"。</p>
+                        </div>
+                        <div class="formula-box mb-6">
+                            <h4 class="font-bold text-lg text-gray-800 mb-2">N = 本期销售额 (新品)</h4>
+                            <p class="text-gray-700">新品动量：所有在本期有销售、但在基准期无销售记录的新上市商品产生的总销售额。这是一个纯粹的增量，恒为<strong>正值</strong>。</p>
+                        </div>
+                        <div class="formula-box mb-6">
+                            <h4 class="font-bold text-lg text-gray-800 mb-2">D = - (基准期销售额 (下架品))</h4>
+                            <p class="text-gray-700">下架品动量：所有在基准期有销售、但在本期无销售记录的已淘汰商品，在基准期产生的总销售额的负值。这是一个纯粹的减量，恒为<strong>负值</strong>。</p>
+                        </div>
+                        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mt-6">
+                            <p class="text-gray-700"><strong>DPA深层解读：</strong> DPA = Dynamic Performance Analysis (动态绩效分析)。D代表Dynamic(动态)，强调经营环境的实时变化；P代表Performance(绩效)，关注经营业绩的多维度表现；A代表Attribution(归因)，精准识别业绩变化的驱动因素。</p>
+                        </div>
+                    </section>
+                    <section>
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                            <i class="fa fa-pie-chart text-primary mr-2"></i>DPA动量指标详解
+                        </h3>
+                        <div class="space-y-6">
+                            <div class="bg-blue-50 p-5 rounded-xl border border-blue-100">
+                                <h4 class="font-bold text-lg text-blue-800 mb-3 flex items-center">
+                                    <i class="fa fa-line-chart mr-2"></i>价格动量 (P)
+                                </h4>
+                                <p class="text-gray-700 mb-3">衡量价格变动对经营业绩的动态影响。</p>
+                                <div class="formula-example">
+                                    <h5 class="font-semibold text-gray-800 mb-2">超市应用实例：</h5>
+                                    <p class="mb-2"><strong>场景：</strong>香蕉品类，进口香蕉价格从9.71元降至6.29元</p>
+                                    <p class="mb-2"><strong>计算：</strong> P = (6.29-9.71) × 100 = -342元</p>
+                                    <p><strong>解读：</strong> 价格动量为负，但这是主动策略而非被动降价。降价成功激发了销量增长动能，是"健康的负动量"。价格动量不是简单的涨价或降价，而是价格变化引发的连锁反应，它决定了经营的"速度"。</p>
+                                </div>
+                            </div>
+                            <div class="bg-green-50 p-5 rounded-xl border border-green-100">
+                                <h4 class="font-bold text-lg text-green-800 mb-3 flex items-center">
+                                    <i class="fa fa-bar-chart mr-2"></i>销量动量 (V)
+                                </h4>
+                                <p class="text-gray-700 mb-3">衡量销量变动对经营业绩的动态影响。</p>
+                                <div class="formula-example">
+                                    <h5 class="font-semibold text-gray-800 mb-2">超市应用实例：</h5>
+                                    <p class="mb-2"><strong>场景：</strong>香蕉品类，销量从100斤增至200斤</p>
+                                    <p class="mb-2"><strong>计算：</strong> V = (200-100) × 9.71 = 971元</p>
+                                    <p><strong>解读：</strong> 销量动量巨大，成为业绩增长的主要动能。销量动量是业务的"引擎"，它决定了经营的"加速度"。在DPA中，我们更关注动量的持续性，而非短期波动。</p>
+                                </div>
+                            </div>
+                            <div class="bg-purple-50 p-5 rounded-xl border border-purple-100">
+                                <h4 class="font-bold text-lg text-purple-800 mb-3 flex items-center">
+                                    <i class="fa fa-sitemap mr-2"></i>结构动量 (M)
+                                </h4>
+                                <p class="text-gray-700 mb-3">衡量产品结构配置变化对经营业绩的动态影响。</p>
+                                <div class="formula-example">
+                                    <h5 class="font-semibold text-gray-800 mb-2">超市应用实例：</h5>
+                                    <p class="mb-2"><strong>场景：</strong>香蕉品类，进口香蕉价格从9.71元降至6.29元，销量翻倍</p>
+                                    <p class="mb-2"><strong>计算：</strong> M = (6.29-9.71) × (200-100) = -342元</p>
+                                    <p><strong>解读：</strong> 结构动量为负，但毛利率从6.49%提升至14.88%。这表明结构动量虽为负，但实际上是"健康的负动量"。结构动量是业务的"方向盘"，它决定了经营的"方向"。在DPA中，我们强调结合毛利率等指标综合判断结构动量的健康度。</p>
+                                </div>
+                            </div>
+                            <div class="bg-orange-50 p-5 rounded-xl border border-orange-100">
+                                <h4 class="font-bold text-lg text-orange-800 mb-3 flex items-center">
+                                    <i class="fa fa-gift mr-2"></i>新品动量 (N)
+                                </h4>
+                                <p class="text-gray-700 mb-3">衡量新品引入对经营业绩的动态影响。</p>
+                                <div class="formula-example">
+                                    <h5 class="font-semibold text-gray-800 mb-2">超市应用实例：</h5>
+                                    <p class="mb-2"><strong>场景：</strong>品牌香蕉新品上市</p>
+                                    <p class="mb-2"><strong>计算：</strong> N = 50,000元</p>
+                                    <p><strong>解读：</strong> 新品动量强劲，不仅贡献了销售额，还吸引了年轻客群，带动整个香蕉品类客流量提升15%。新品动量是业务的"新引擎"，它决定了未来的增长潜力。在DPA中，我们不仅看动量大小，更关注其持续性和质量。</p>
+                                </div>
+                            </div>
+                            <div class="bg-red-50 p-5 rounded-xl border border-red-100">
+                                <h4 class="font-bold text-lg text-red-800 mb-3 flex items-center">
+                                    <i class="fa fa-times mr-2"></i>下架品动量 (D)
+                                </h4>
+                                <p class="text-gray-700 mb-3">衡量下架品对经营业绩的动态影响。</p>
+                                <div class="formula-example">
+                                    <h5 class="font-semibold text-gray-800 mb-2">超市应用实例：</h5>
+                                    <p class="mb-2"><strong>场景：</strong>淘汰联营香蕉产品</p>
+                                    <p class="mb-2"><strong>计算：</strong> D = -10,000元</p>
+                                    <p><strong>解读：</strong> 下架品动量较小，表明新陈代谢健康。下架品动量是业务的"刹车"，它决定了转型的成本。在DPA中，我们关注下架品动量与新品动量的比值，评估新陈代谢效率。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-white border-t border-gray-200 mt-8 py-5">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center text-gray-600">
+                <p>DPA经营业绩动态分析框架 © <span id="current-year"></span></p>
+                <p class="mt-1 text-sm">上海尚益企业管理咨询有限公司</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Set current year in footer
+        document.getElementById('current-year').textContent = new Date().getFullYear();
+
+        // 组合数据
+        const combinations = [
+            {
+                id: 'pv+m+nd>',
+                p: '+', v: '+', m: '+', nd: '>',
+                title: '黄金动量',
+                status: 'excellent',
+                profitTrend: '↑↑↑',
+                meaning: '价格上涨、销量增加，销售结构优化，且新品贡献远超下架损失',
+                causes: [
+                    '市场供不应求 + 消费者偏好升级',
+                    '商品成为"社交货币"（如网红健康食品）',
+                    '成功引导消费升级（试吃活动推动高端选择）'
+                ],
+                example: {
+                    category: '有机蓝莓',
+                    details: '因气候灾害提价15%，但健康热潮带动销量增20%，有机款占比从30%→50%，同时引入新品"有机蓝莓果酱"销售火爆，淘汰了滞销的"蓝莓干"但其贡献较小',
+                    mAnalysis: `
+                        <h5 class="font-semibold text-gray-800 mb-2">结构动量深度分析：</h5>
+                        <p class="text-gray-700 mb-2">结构动量为正表示销售结构向高利润商品倾斜。在有机蓝莓品类中，虽然整体价格上涨，但有机蓝莓的销量增长比例（20%）高于普通蓝莓，导致高利润商品占比从30%提升至50%。</p>
+                        <p class="text-gray-700 mb-2">值得注意的是，同期毛利率从35%提升至42%，这验证了结构动量为正的积极意义——结构优化带来了更高的盈利能力。</p>
+                        <p class="text-gray-700">在品类管理中，结构动量为正通常意味着消费者愿意为品质支付溢价，是品类健康发展的标志。但需注意，如果高利润商品的绝对销量很低，结构动量为正可能只是"虚胖"，需要结合客流量和转化率指标进行综合判断。</p>
+                    `,
+                    ndAnalysis: `
+                        <h5 class="font-semibold text-gray-800 mb-2">N/D分析：</h5>
+                        <p class="text-gray-700 mb-2">新品"有机蓝莓果酱"贡献了8万元销售额，而淘汰的"蓝莓干"仅贡献2万元，N>D表明新品策略成功。</p>
+                        <p class="text-gray-700">这种新陈代谢是健康的，说明超市能够不断引入更符合市场需求的商品。但需监控新品的毛利率（果酱毛利率45%，高于蓝莓干的30%），确保净增长的质量。</p>
+                    `,
+                    overall: `
+                        <h5 class="font-semibold text-gray-800 mb-2">综合评估：</h5>
+                        <p class="text-gray-700 mb-2">这是一个理想的组合：P+V+M+表明老品健康发展，N>D表明新陈代谢健康。同期毛利率提升7个百分点，客流量增加12%，说明增长是可持续的。</p>
+                        <p class="text-gray-700">需要警惕的是：气候灾害导致的提价可能不可持续，应关注后续价格弹性变化。</p>
+                    `
+                },
+                solution: '扩大高利润品陈列，锁定结构动量为正趋势（与供应商签独家协议），设置价格弹性阈值，并复制新品成功经验'
+            },
+            {
+                id: 'pv+m-nd>',
+                p: '+', v: '+', m: '-', nd: '>',
+                title: '增长风险',
+                status: 'warning',
+                profitTrend: '↑ (风险↑)',
+                meaning: '价格上涨带动销量，但销售结构向低利润倾斜，新品增长掩盖结构恶化',
+                causes: [
+                    '短期投机需求激增',
+                    '价格敏感客群占比快速上升',
+                    '促销策略未匹配客群结构变化'
+                ],
+                example: {
+                    category: '节日礼盒',
+                    details: '节前提价15%，销量增30%，但高端礼盒占比从50%→35%，新品"平价礼盒"贡献了大部分增长，淘汰了少量旧款',
+                    mAnalysis: `
+                        <h5 class="font-semibold text-gray-800 mb-2">结构动量深度分析：</h5>
+                        <p class="text-gray-700 mb-2">结构动量为负表示销售结构向低利润商品倾斜。在节日礼盒品类中，虽然整体价格上涨15%，但高端礼盒（毛利率50%）的销量增长仅为10%，而平价礼盒（毛利率30%）销量增长了50%，导致高利润商品占比从50%下降至35%。</p>
+                        <p class="text-gray-700 mb-2">关键洞察：同期毛利率从42%下降至38%，验证了结构动量为负的负面影响。虽然总收入增长，但盈利能力在下降。</p>
+                        <p class="text-gray-700">这种结构动量为负通常发生在：(1) 消费者对价格敏感度提高；(2) 促销策略不当，过度依赖低价商品引流；(3) 未及时调整商品组合以匹配客群变化。</p>
+                    `,
+                    ndAnalysis: `
+                        <h5 class="font-semibold text-gray-800 mb-2">N/D分析：</h5>
+                        <p class="text-gray-700 mb-2">新品"平价礼盒"贡献了15万元销售额，淘汰的旧款仅损失3万元，N>D表明新陈代谢健康。</p>
+                        <p class="text-gray-700">但深入分析发现，新品的毛利率(30%)远低于老品平均毛利率(42%)，这种N>D是以牺牲利润率为代价的。如果持续下去，将导致整体盈利能力下降。</p>
+                    `,
+                    overall: `
+                        <h5 class="font-semibold text-gray-800 mb-2">综合评估：</h5>
+                        <p class="text-gray-700 mb-2">表面看是健康的增长(P+V+N>D)，但结构动量为负和毛利率下降揭示了潜在风险。这可能是短期投机行为或客群结构变化的信号。</p>
+                        <p class="text-gray-700">关键问题：增长是可持续的吗？如果是由于经济下行导致消费者转向低价商品，这种趋势可能持续，需要重新定位品类策略。</p>
+                    `
+                },
+                solution: '动态调整产品组合，实施阶梯定价，加强客户价值教育，监控结构动量变化趋势'
+            },
+            {
+                id: 'p-v+m+nd>',
+                p: '-', v: '+', m: '+', nd: '>',
+                title: '健康增长',
+                status: 'excellent',
+                profitTrend: '↑↑',
+                meaning: '价格下降但销量大增，销售结构向高利润商品倾斜，新品成功且下架损失可控',
+                causes: [
+                    '成功的"以价换量"策略',
+                    '消费者对降价反应积极',
+                    '高价值商品吸引力增强'
+                ],
+                example: {
+                    category: '香蕉',
+                    details: '进口香蕉价格从9.71元降至6.29元，销量翻倍，高利润款占比逆势提升，新品"香蕉奶昔"畅销，淘汰了滞销的"香蕉片"',
+                    mAnalysis: `
+                        <h5 class="font-semibold text-gray-800 mb-2">结构动量深度分析：</h5>
+                        <p class="text-gray-700 mb-2">香蕉品类中，P=-67,588，V=295,680，M=-149,123。虽然结构动量为负，但同期毛利率从6.49%提升至14.88%，这似乎矛盾。</p>
+                        <p class="text-gray-700 mb-2">关键解释：结构动量为负并不总是表示"卖得差"。在这个案例中，进口香蕉降价后，虽然单价低于去年同期，但因其品质提升，毛利率从12.08%提升至15.05%。结构动量为负反映的是：增长的销量中，相对低价商品（降价后的进口香蕉）占比上升，但从毛利率角度看，这些"相对低价"商品实际上仍是高利润商品。</p>
+                        <p class="text-gray-700">这种结构动量为负是"健康的结构动量为负"，是成功的"以价换量"策略的结果。真正的指标是：销量动量的巨大正向贡献和整体毛利率的翻倍提升，表明业务健康增长。</p>
+                    `,
+                    ndAnalysis: `
+                        <h5 class="font-semibold text-gray-800 mb-2">N/D分析：</h5>
+                        <p class="text-gray-700 mb-2">新品"香蕉奶昔"贡献了5万元销售额，淘汰的"香蕉片"仅损失1万元，N>D表明新陈代谢健康且高质量。</p>
+                        <p class="text-gray-700">特别值得注意的是，新品成功吸引了年轻客群，带动了整个香蕉品类的客流量提升15%，这超出了单纯的销售额贡献。</p>
+                    `,
+                    overall: `
+                        <h5 class="font-semibold text-gray-800 mb-2">综合评估：</h5>
+                        <p class="text-gray-700 mb-2">这是一个典型的健康增长案例：P-V+M- N>D，但毛利率大幅提升。关键在于不能孤立看待结构动量，而应结合毛利率、客流量等指标综合判断。</p>
+                        <p class="text-gray-700">结构动量为负在此案例中反映的是价格策略成功带来的结构变化，而非真正的结构恶化。下一步应利用客流优势，引导顾客购买更高毛利的商品（如搭配销售香蕉蛋糕），进一步优化结构动量。</p>
+                    `
+                },
+                solution: '巩固"以价换量"成果，利用客流优势推广高利润商品，建立新品快速迭代机制'
+            },
+            {
+                id: 'pv+m+nd=',
+                p: '+', v: '+', m: '+', nd: '=',
+                title: '稳定增长',
+                status: 'good',
+                profitTrend: '↑',
+                meaning: '价格上涨、销量增加，销售结构优化，但新品贡献与下架损失持平',
+                causes: [
+                    '成熟品类的稳健运营',
+                    '严格的商品生命周期管理',
+                    '新品与旧品的平稳过渡'
+                ],
+                example: {
+                    category: '牛奶',
+                    details: '提价5%，销量增10%，高端有机奶占比提升，成功推出新品"高钙牛奶"但淘汰了等量贡献的"低脂牛奶"',
+                    mAnalysis: `
+                        <h5 class="font-semibold text-gray-800 mb-2">结构动量深度分析：</h5>
+                        <p class="text-gray-700 mb-2">在牛奶品类中，结构动量为正表示销售结构向高利润商品倾斜。高端有机奶占比从25%提升至35%，带动整体毛利率从30%提升至33%。</p>
+                        <p class="text-gray-700 mb-2">结构动量为正常常发生在：(1) 消费者愿意为健康支付溢价；(2) 有效的营销活动引导消费升级；(3) 商品组合优化成功。</p>
+                        <p class="text-gray-700">但需注意，如果结构动量为正是由于淘汰了有销量基础的常规产品，可能会导致客流量下降。在这个案例中，客流量保持稳定，表明消费升级是自然发生的，而非被迫淘汰。</p>
+                    `,
+                    ndAnalysis: `
+                        <h5 class="font-semibold text-gray-800 mb-2">N/D分析：</h5>
+                        <p class="text-gray-700 mb-2">新品"高钙牛奶"贡献了8万元销售额，淘汰的"低脂牛奶"损失8万元，N=D表明新陈代谢平衡。</p>
+                        <p class="text-gray-700">深入分析发现，新品毛利率(35%)高于淘汰品(28%)，虽然销售额贡献相等，但利润贡献更高。这种平衡是高质量的，表明商品更新换代是优化的。</p>
+                    `,
+                    overall: `
+                        <h5 class="font-semibold text-gray-800 mb-2">综合评估：</h5>
+                        <p class="text-gray-700 mb-2">P+V+M+ N=D是一个稳健的组合，表明品类健康发展且新陈代谢平衡。毛利率提升3个百分点，客流量稳定，说明增长是可持续的。</p>
+                        <p class="text-gray-700">潜在风险：如果长期维持N=D，可能缺乏增长动力。建议在保持平衡的同时，逐步增加N>D的比例，推动品类进一步增长。</p>
+                    `
+                },
+                solution: '维持现有策略，关注成本优化，探索新的增长点，确保N/D平衡的可持续性'
+            },
+            {
+                id: 'pv+m+nd<',
+                p: '+', v: '+', m: '+', nd: '<',
+                title: '新陈代谢失衡',
+                status: 'critical',
+                profitTrend: '↓',
+                meaning: '价格上涨、销量增加，销售结构优化，但下架品损失超过新品贡献',
+                causes: [
+                    '淘汰了高贡献的旧品',
+                    '新品推广不力',
+                    '供应链或市场策略失误'
+                ],
+                example: {
+                    category: '咖啡',
+                    details: '提价8%，销量增15%，高端豆占比提升，但淘汰的"经典意式"贡献巨大，而新品"冷萃液"销售不佳',
+                    mAnalysis: `
+                        <h5 class="font-semibold text-gray-800 mb-2">结构动量深度分析：</h5>
+                        <p class="text-gray-700 mb-2">在咖啡品类中，结构动量为正表示销售结构向高利润商品倾斜。高端咖啡豆占比从40%提升至55%，带动整体毛利率从45%提升至48%。</p>
+                        <p class="text-gray-700 mb-2">然而，结构动量为正的积极影响被N&lt;D所抵消。这表明虽然现有商品结构优化，但未能成功引入足够多的新品来弥补淘汰商品的损失。</p>
+                        <p class="text-gray-700">关键问题：淘汰决策是否过早？"经典意式"可能仍是客流担当，淘汰它虽然提升了单品毛利率，但可能导致忠实顾客流失。</p>
+                    `,
+                    ndAnalysis: `
+                        <h5 class="font-semibold text-gray-800 mb-2">N/D分析：</h5>
+                        <p class="text-gray-700 mb-2">新品"冷萃液"仅贡献3万元销售额，淘汰的"经典意式"损失10万元，N&lt;D=-7万元。</p>
+                        <p class="text-gray-700">深入分析发现，新品定位与目标客群不匹配，且推广力度不足。而淘汰的"经典意式"虽然毛利率(42%)略低于品类平均(45%)，但它是许多顾客购买咖啡的入门产品，对客流量贡献大。</p>
+                    `,
+                    overall: `
+                        <h5 class="font-semibold text-gray-800 mb-2">综合评估：</h5>
+                        <p class="text-gray-700 mb-2">P+V+M+ N&lt;D是一个危险的组合。虽然老品表现优秀，但新陈代谢失衡可能导致长期增长乏力。</p>
+                        <p class="text-gray-700">关键指标：客流量下降8%，表明淘汰"经典意式"影响了基础客群。即使毛利率提升，总利润仍可能下降，因为基础客流量减少会影响整个品类的销售。</p>
+                    `
+                },
+                solution: '紧急评估淘汰决策，挽救有潜力的新品，调整新品推广策略，修复商品组合'
+            },
+            {
+                id: 'p+v-m+nd>',
+                p: '+', v: '-', m: '-', nd: '>',
+                title: '价值转型',
+                status: 'good',
+                profitTrend: '↑',
+                meaning: '价格上涨但销量下降，销售结构向低利润商品倾斜，且有新品成功上市',
+                causes: [
+                    '消费者对价格敏感度提高',
+                    '竞争压力导致客源流失',
+                    '商品组合策略严重失误'
+                ],
+                example: {
+                    category: '进口橄榄油',
+                    details: '普通橄榄油提价20%，有机橄榄油仅提价5%，有机款销量增长20%，新品"特级初榨"表现良好',
+                    mAnalysis: `
+                        <h5 class="font-semibold text-gray-800 mb-2">结构动量深度分析：</h5>
+                        <p class="text-gray-700 mb-2">在进口橄榄油品类中，结构动量为负表示销售结构向"相对低价"商品倾斜。有机橄榄油占比从25%提升至40%，但因其提价幅度(5%)小于普通橄榄油(20%)，在结构动量计算中被视为"相对低价"商品。</p>
+                        <p class="text-gray-700 mb-2">结构动量为负反映的是：超市对高端商品采取了更谨慎的定价策略，通过温和提价保留高端客户。虽然结构动量为负，但高利润商品销量增长15%，带动整体毛利率从55%提升至62%。</p>
+                        <p class="text-gray-700">这种结构动量为负是"健康的结构动量为负"，表明超市正在谨慎试水高端市场，避免因大幅提价导致客户流失。</p>
+                    `,
+                    ndAnalysis: `
+                        <h5 class="font-semibold text-gray-800 mb-2">N/D分析：</h5>
+                        <p class="text-gray-700 mb-2">新品"特级初榨"贡献了6万元销售额，淘汰的低端款损失4万元，N>D=2万元。</p>
+                        <p class="text-gray-700">特别值得注意的是，新品与品类高端化战略高度一致，吸引了高价值客户，且新品毛利率(68%)高于淘汰品(50%)，进一步提升了整体盈利能力。</p>
+                    `,
+                    overall: `
+                        <h5 class="font-semibold text-gray-800 mb-2">综合评估：</h5>
+                        <p class="text-gray-700 mb-2">P+V-M- N>D是一个战略转型成功的案例。虽然总销量略有下降，但客流量质量提升，客单价增长18%，整体利润增长12%。</p>
+                        <p class="text-gray-700">关键成功因素：高端化转型与新品引入协同，形成了完整的价值主张。下一步应加强高端客户体验，巩固转型成果。</p>
+                    `
+                },
+                solution: '继续温和提价策略，加强高端客户体验，逐步测试价格弹性'
+            },
+            {
+                id: 'p+v-m+nd=',
+                p: '+', v: '+', m: '-', nd: '=',
+                title: '结构平衡',
+                status: 'good',
+                profitTrend: '↑',
+                meaning: '价格上涨、销量增加，销售结构优化，且新品贡献与下架损失持平',
+                causes: [
+                    '成熟品类的精细化运营',
+                    '精准的商品生命周期管理',
+                    '高利润商品策略成功实施'
+                ],
+                example: {
+                    category: '食用油',
+                    details: '高端橄榄油提价5%，销量增8%，高利润品类占比从35%→45%，成功推出新品"特级初榨"但淘汰了等量贡献的"普通装"',
+                    mAnalysis: `
+                        <h5 class="font-semibold text-gray-800 mb-2">结构动量深度分析：</h5>
+                        <p class="text-gray-700 mb-2">在食用油品类中，结构动量为负表示销售结构向低利润商品倾斜。虽然整体价格上涨5%，但高利润橄榄油占比从35%提升至45%，带动整体毛利率从28%提升至32%。</p>
+                        <p class="text-gray-700 mb-2">结构动量为负在此案例中是主动战略的结果：通过小幅提价筛选高价值客户，同时提升高利润商品占比。虽然总销量增长8%，但高利润商品的销量实际上增长了15%。</p>
+                        <p class="text-gray-700">这种结构动量为负通常表明：(1) 品类成功向高端转型；(2) 消费者认可品牌价值；(3) 价格策略与目标客群匹配。</p>
+                    `,
+                    ndAnalysis: `
+                        <h5 class="font-semibold text-gray-800 mb-2">N/D分析：</h5>
+                        <p class="text-gray-700 mb-2">新品"特级初榨"贡献了6万元销售额，淘汰的"普通装"损失6万元，N=D表明新陈代谢平衡。</p>
+                        <p class="text-gray-700">特别值得注意的是，新品与品类高端化战略高度一致，吸引了高价值客户，且新品毛利率(35%)高于淘汰品(28%)，进一步提升了整体盈利能力。</p>
+                    `,
+                    overall: `
+                        <h5 class="font-semibold text-gray-800 mb-2">综合评估：</h5>
+                        <p class="text-gray-700 mb-2">P+V-M- N=D是一个战略转型成功的案例。虽然总销量增长8%，但客流量质量提升，客单价增长12%，整体利润增长10%。</p>
+                        <p class="text-gray-700">关键成功因素：高端化转型与新品引入协同，形成了完整的价值主张。下一步应加强高端客户体验，巩固转型成果。</p>
+                    `
+                },
+                solution: '强化高端客户体验，优化供应链效率，实施客户忠诚度计划'
+            },
+            {
+                id: 'p-v+m+nd=',
+                p: '-', v: '+', m: '+', nd: '=',
+                title: '结构优化',
+                status: 'caution',
+                profitTrend: '↓ (结构↑)',
+                meaning: '价格降但销量仍跌，高利润品占比逆势提升，新陈代谢平衡',
+                causes: [
+                    '市场整体萎缩但高端需求坚挺',
+                    '精准定位高价值客群',
+                    '战略性放弃价格敏感客户'
+                ],
+                example: {
+                    category: '冬季羽绒服',
+                    details: '降价20%清库存，销量降10%，但高端款占比从30%→45%，新品"轻薄款"与淘汰的"厚重款"贡献相当',
+                    mAnalysis: `
+                        <h5 class="font-semibold text-gray-800 mb-2">结构动量深度分析：</h5>
+                        <p class="text-gray-700 mb-2">在冬季羽绒服品类中，结构动量为正表示销售结构向高利润商品倾斜。高端羽绒服占比从30%提升至45%，带动整体毛利率从40%提升至45%。</p>
+                        <p class="text-gray-700 mb-2">虽然P-V-表明市场整体萎缩，但结构动量为正表明在萎缩市场中，高价值客户群体依然坚挺。高端款实际销量仅下降3%，而普通款销量下降了18%。</p>
+                        <p class="text-gray-700">这种结构动量为正常常发生在：(1) 市场下行期，高价值客户受影响较小；(2) 精准营销锁定核心客群；(3) 战略性放弃价格敏感客户。</p>
+                    `,
+                    ndAnalysis: `
+                        <h5 class="font-semibold text-gray-800 mb-2">N/D分析：</h5>
+                        <p class="text-gray-700 mb-2">新品"轻薄款"贡献5万元销售额，淘汰的"厚重款"损失5万元，N=D表明新陈代谢平衡。</p>
+                        <p class="text-gray-700">深入分析发现，新品更符合当前市场趋势（轻便、时尚），虽然销售额贡献相等，但新品客流量转化率高出15%，表明新品具有更好的长期潜力。</p>
+                    `,
+                    overall: `
+                        <h5 class="font-semibold text-gray-800 mb-2">综合评估：</h5>
+                        <p class="text-gray-700 mb-2">P-V+M+ N=D是一个市场调整期的典型组合。虽然总收入略有下降，但毛利率提升5个百分点，表明品类结构在优化。</p>
+                        <p class="text-gray-700">关键洞察：客流量下降12%，但高价值客群占比提升，客单价增长10%。这表明品类正在向更可持续的方向调整，但需监控调整速度，避免客流量过度流失。</p>
+                    `
+                },
+                solution: '转向高利润细分市场，强化高端形象，数据驱动补救策略'
+            },
+            {
+                id: 'p-v+m-nd>',
+                p: '-', v: '+', m: '-', nd: '>',
+                title: '价值提升',
+                status: 'caution',
+                profitTrend: '↑ (利润稀释)',
+                meaning: '降价刺激销量，但低利润品主导销售结构，新品增长掩盖结构恶化',
+                causes: [
+                    '过度依赖价格促销',
+                    '引流商品未能有效转化',
+                    '高利润品价值主张不清晰'
+                ],
+                example: {
+                    category: '香蕉',
+                    details: '进口香蕉价格从9.71元降至6.29元，销量翻倍，但高利润款占比下降，新品"香蕉奶昔"销售良好',
+                    mAnalysis: `
+                        <h5 class="font-semibold text-gray-800 mb-2">结构动量深度分析：</h5>
+                        <p class="text-gray-700 mb-2">在香蕉品类中，P=-67,588，V=295,680，M=-149,123。结构动量为负表示销售结构向低利润商品倾斜。</p>
+                        <p class="text-gray-700 mb-2">关键洞察：虽然进口香蕉毛利率从12.08%提升至15.05%，但因其单价低于去年同期，结构动量计算中被视为"相对低价"商品。结构动量为负反映的是：增长的销量中，相对低价商品占比上升。</p>
+                        <p class="text-gray-700">与健康增长案例不同，此案例中高利润商品（如有机香蕉）占比下降，而非提升。虽然整体毛利率提升，但提升幅度(14.88%)低于销量增长(100%)，表明利润被稀释。</p>
+                    `,
+                    ndAnalysis: `
+                        <h5 class="font-semibold text-gray-800 mb-2">N/D分析：</h5>
+                        <p class="text-gray-700 mb-2">新品"香蕉奶昔"贡献5万元销售额，淘汰品损失1万元，N>D表明新陈代谢健康。</p>
+                        <p class="text-gray-700">但新品主要吸引价格敏感客群，与降价策略形成"双重低价效应"，进一步拉低了整体销售结构。新品毛利率(20%)低于品类平均水平(14.88%)，未能有效改善结构。</p>
+                    `,
+                    overall: `
+                        <h5 class="font-semibold text-gray-800 mb-2">综合评估：</h5>
+                        <p class="text-gray-700 mb-2">P-V+M- N>D是一个典型的"价格战陷阱"。虽然总收入增长，但利润增长不及收入增长，且销售结构持续恶化。</p>
+                        <p class="text-gray-700">关键问题：降价带来的客流是否转化为高利润商品的销售？数据显示，高利润商品转化率仅15%，远低于行业平均水平(25%)，表明引流策略失败。</p>
+                    `
+                },
+                solution: '限制促销量，设计捆绑销售，提升高利润品感知价值'
+            },
+            {
+                id: 'p+v-m-nd<',
+                p: '+', v: '-', m: '-', nd: '<',
+                title: '危机组合',
+                status: 'critical',
+                profitTrend: '↓↓↓',
+                meaning: '价格上涨但销量下降，销售结构向低利润商品倾斜，且下架损失超过新品贡献',
+                causes: [
+                    '消费者对价格敏感度提高',
+                    '竞争压力导致客源流失',
+                    '商品组合策略严重失误'
+                ],
+                example: {
+                    category: '零食组合',
+                    details: '提价5%应对成本上涨，销量下降12%，高利润进口零食占比从35%→25%，新品"健康零食"推广失败，淘汰了畅销的"经典薯片"',
+                    mAnalysis: `
+                        <h5 class="font-semibold text-gray-800 mb-2">结构动量深度分析：</h5>
+                        <p class="text-gray-700 mb-2">在零食组合品类中，结构动量为负表示销售结构向低利润商品倾斜。高利润进口零食占比从35%下降至25%，带动整体毛利率从40%下降至36%。</p>
+                        <p class="text-gray-700 mb-2">结构动量为负与P+V-组合尤其危险：消费者不仅对提价敏感，还转向购买更低利润的商品，表明品牌价值受损或竞争压力加大。</p>
+                        <p class="text-gray-700">关键问题：高利润商品销量下降18%，而低利润商品销量仅下降5%，表明核心客群正在流失，而剩余客群价格敏感度更高。</p>
+                    `,
+                    ndAnalysis: `
+                        <h5 class="font-semibold text-gray-800 mb-2">N/D分析：</h5>
+                        <p class="text-gray-700 mb-2">新品"健康零食"仅贡献2万元销售额，淘汰的"经典薯片"损失8万元，N&lt;D=-6万元。</p>
+                        <p class="text-gray-700">更严重的是，"经典薯片"是品类的客流担当，淘汰它导致整个零食区域客流量下降15%。新品定位与目标客群不匹配，且推广策略不当。</p>
+                    `,
+                    overall: `
+                        <h5 class="font-semibold text-gray-800 mb-2">综合评估：</h5>
+                        <p class="text-gray-700 mb-2">P+V-M- N&lt;D是一个全面危机信号。总收入下降7%，毛利率下降4个百分点，客流量下降15%，表明品类陷入恶性循环。</p>
+                        <p class="text-gray-700">根本原因：在消费者价格敏感度提高的环境下，错误地同时采取提价、淘汰核心商品、引入不匹配新品三大策略，导致客群全面流失。</p>
+                    `
+                },
+                solution: '紧急评估价格策略，恢复核心商品，重新定位新品，实施客户挽回计划'
+            }
+        ];
+
+        // 显示内容
+        function showContent(id) {
+            document.getElementById('analysis-content').classList.toggle('hidden', id !== 'analysis-tab');
+            document.getElementById('guide-content').classList.toggle('hidden', id !== 'guide-tab');
+            
+            // 动态分析按钮
+            document.getElementById('analysis-tab').classList.toggle('bg-primary', id === 'analysis-tab');
+            document.getElementById('analysis-tab').classList.toggle('text-white', id === 'analysis-tab');
+            document.getElementById('analysis-tab').classList.toggle('bg-gray-100', id !== 'analysis-tab');
+            document.getElementById('analysis-tab').classList.toggle('text-gray-800', id !== 'analysis-tab');
+            document.getElementById('analysis-tab').classList.toggle('hover:bg-gray-200', id !== 'analysis-tab');
+            
+            // 使用说明按钮
+            document.getElementById('guide-tab').classList.toggle('bg-primary', id === 'guide-tab');
+            document.getElementById('guide-tab').classList.toggle('text-white', id === 'guide-tab');
+            document.getElementById('guide-tab').classList.toggle('bg-gray-100', id !== 'guide-tab');
+            document.getElementById('guide-tab').classList.toggle('text-gray-800', id !== 'guide-tab');
+            document.getElementById('guide-tab').classList.toggle('hover:bg-gray-200', id !== 'guide-tab');
+        }
+
+        // 绑定事件
+        document.getElementById('analysis-tab').addEventListener('click', () => showContent('analysis-tab'));
+        document.getElementById('guide-tab').addEventListener('click', () => showContent('guide-tab'));
+
+        // 更新组合
+        function updateCombination() {
+            const p = document.getElementById('p-select').value;
+            const v = document.getElementById('v-select').value;
+            const m = document.getElementById('m-select').value;
+            const nd = document.getElementById('nd-select').value;
+
+            document.getElementById('p-badge').textContent = `P${p}`;
+            document.getElementById('v-badge').textContent = `V${v}`;
+            document.getElementById('m-badge').textContent = `M${m === '+' ? '优化' : '恶化'}`;
+            document.getElementById('nd-badge').textContent = `N${nd === '>' ? '>' : nd === '=' ? '=' : '<'}D`;
+
+            const combination = combinations.find(c => c.p === p && c.v === v && c.m === m && c.nd === nd);
+
+            if (combination) {
+                document.getElementById('combination-title').textContent = `${p}${v}${m} N${nd === '>' ? '>' : nd === '=' ? '=' : '<'}D 组合分析`;
+                document.getElementById('combination-content').innerHTML = `
+                    <div class="space-y-4">
+                        <div class="flex items-center">
+                            <span class="px-3 py-1 rounded-full text-sm font-medium ${combination.status === 'excellent' ? 'bg-green-100 text-green-800' : combination.status === 'good' ? 'bg-blue-100 text-blue-800' : combination.status === 'warning' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}">${combination.title}</span>
+                            <span class="ml-3 px-3 py-1 bg-gray-100 rounded-full text-sm font-medium">健康度: ${combination.profitTrend}</span>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-800 mb-2">组合含义</h4>
+                            <p class="text-gray-700">${combination.meaning}</p>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-800 mb-2">可能原因</h4>
+                            <ul class="list-disc pl-5 space-y-1 text-gray-700">
+                                ${combination.causes.map(cause => `<li>${cause}</li>`).join('')}
+                            </ul>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <h4 class="font-semibold text-gray-800 mb-2">品类案例分析：${combination.example.category}</h4>
+                            <p class="text-gray-700 mb-4">${combination.example.details}</p>
+                            
+                            <div class="mb-4">
+                                ${combination.example.mAnalysis}
+                            </div>
+                            
+                            <div class="mb-4">
+                                ${combination.example.ndAnalysis}
+                            </div>
+                            
+                            <div>
+                                ${combination.example.overall}
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-800 mb-2">应对策略</h4>
+                            <p class="text-gray-700">${combination.solution}</p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                document.getElementById('combination-content').innerHTML = '<p class="text-gray-700">未找到匹配的组合。</p>';
+            }
+        }
+
+        // 设置组合
+        function setCombination(p, v, m, nd) {
+            document.getElementById('p-select').value = p;
+            document.getElementById('v-select').value = v;
+            document.getElementById('m-select').value = m;
+            document.getElementById('nd-select').value = nd;
+            updateCombination();
+        }
+
+        // 初始化 - 默认显示使用说明
+        showContent('guide-tab');
+        updateCombination();
+
+        // 监听选择器变化
+        ['p-select', 'v-select', 'm-select', 'nd-select'].forEach(id => {
+            document.getElementById(id).addEventListener('change', updateCombination);
+        });
+        
+        // 绑定组合按钮
+        document.querySelectorAll('.combo-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const comboId = this.getAttribute('data-combo');
+                const combo = combinations.find(c => c.id === comboId);
+                if (combo) {
+                    setCombination(combo.p, combo.v, combo.m, combo.nd);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
